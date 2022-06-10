@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Hub and spoke</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.9.0-beta.2/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.9.0-beta.2/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+
+let initLoad = true;
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoid2lsbGlhbS1kYXZpcyIsImEiOiJja2tiYWtvbWcwMmtzMnBvajh3M2kxZGRuIn0.GeROaHKn2Gbvsg1e8buJEw';
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v11',
+    center: [-90, 40],
+    zoom: 3.15,
+    projection: 'globe'
+});
+
+map.on('load', () => {
+    let airports;
+    map.once('idle', () => {
+        d3.json("./data/airport.json", function (d) {
+            const firstPoint = turf.point([0, 0]);
+            airports = d;
+            buildSpoke(airports, firstPoint);
+        });
+
+        map.on('mousemove', (e) => {
+            const newPoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
+            buildSpoke(airports, newPoint);
+        });
+    });
+});
+
+function buildSpoke(airports, point) {
+    let nearestAirports = turf.featureCollection([]);
+    let nearestAirportLines = turf.featureCollection([]);
+    let cleanedAirports = JSON.parse(JSON.stringify(airports));
+
+    for (let i=1;i<=10;i++) {
+        const nearest = turf.nearestPoint(point, cleanedAirports);
+        const nearestLine = turf.lineString([point.geometry.coordinates, nearest.geometry.coordinates]);
+        
+        nearestAirports.features.push(nearest);
+        nearestAirportLines.features.push(nearestLine);
+
+        const index = cleanedAirports.features.findIndex(n => n.properties.name === nearest.properties.name)
+        if (index !== -1) {
+            cleanedAirports.features.splice(index, 1);
+        }
+    }
+
+    if (initLoad) {
+        addLayers(airports, nearestAirports, nearestAirportLines);
+    } else {
+        map.getSource('newPoint').setData(nearestAirports);
+        map.getSource('newLine').setData(nearestAirportLines);
+    }
+}
+
+function addLayers(airports, nearest, route) {
+    initLoad = false;
+
+    map.addSource('points', {
+        'type': 'geojson',
+        'data': airports
+    });
+
+    map.addSource('newPoint', {
+        'type': 'geojson',
+        'data': nearest
+    });
+
+    map.addSource('newLine', {
+        'type': 'geojson',
+        'data': route
+    });
+
+    map.addLayer({
+        'id': 'routeLayer',
+        'type': 'line',
+        'source': 'newLine',
+        'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': 'red',
+            'line-width': 4
+        }
+    });
+
+    map.addLayer({
+        'id': 'globe-points',
+        'type': 'circle',
+        'source': 'points',
+        'paint': {
+            'circle-radius': 3,
+            'circle-opacity': 1,
+            'circle-blur': 0,
+            'circle-color': '#555'
+        }
+    });
+
+    map.addLayer({
+        'id': 'globe-newPoint',
+        'type': 'circle',
+        'source': 'newPoint',
+        'paint': {
+            'circle-radius': 4,
+            'circle-opacity': 1,
+            'circle-blur': 0,
+            'circle-color': 'red'
+        }
+    });
+}
+</script>
+</body>
+</html>
