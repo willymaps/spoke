@@ -37,8 +37,16 @@ map.on('load', () => {
             buildSpoke(airports, firstPoint);
         });
 
-        map.on('mousemove', (e) => {
-            const newPoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
+        // use mouse location
+        // map.on('mousemove', (e) => {
+        //     const newPoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
+        //     buildSpoke(airports, newPoint);
+        // });
+
+        // use map center
+        map.on('move', () => {
+            const center = map.getCenter();
+            const newPoint = turf.point([center.lng, center.lat]);
             buildSpoke(airports, newPoint);
         });
     });
