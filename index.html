@@ -23,18 +23,20 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoid2lsbGlhbS1kYXZpcyIsImEiOiJja2tiYWtvbWcwMmtzM
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11',
-    center: [-90, 40],
+    center: [0, 40],
     zoom: 3.15,
     projection: 'globe'
 });
 
 map.on('load', () => {
     let airports;
+
     map.once('idle', () => {
         d3.json("./data/airport.json", function (d) {
             const firstPoint = turf.point([0, 0]);
             airports = d;
             buildSpoke(airports, firstPoint);
+            getSpoke(airports);
         });
 
         // use mouse location
@@ -45,12 +47,16 @@ map.on('load', () => {
 
         // use map center
         map.on('move', () => {
-            const center = map.getCenter();
-            const newPoint = turf.point([center.lng, center.lat]);
-            buildSpoke(airports, newPoint);
+            getSpoke(airports);
         });
     });
 });
+
+function getSpoke(airports) {
+    const center = map.getCenter();
+    const newPoint = turf.point([center.lng, center.lat]);
+    buildSpoke(airports, newPoint);
+}
 
 function buildSpoke(airports, point) {
     let nearestAirports = turf.featureCollection([]);
