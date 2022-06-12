@@ -34,9 +34,7 @@ map.on('load', () => {
 
     map.once('idle', () => {
         d3.json("./data/airport.json", function (d) {
-            const firstPoint = turf.point([0, 0]);
             airports = d;
-            buildSpoke(airports, firstPoint);
             getSpoke(airports);
         });
 
