@@ -64,6 +64,15 @@ function buildSpoke(airports, point) {
 
     for (let i=1;i<=10;i++) {
         const nearest = turf.nearestPoint(point, cleanedAirports);
+        const startLng = point.geometry.coordinates[0];
+        const endLng = nearest.geometry.coordinates[0];
+        
+        if (startLng >= 90 && endLng <= -90) {
+            nearest.geometry.coordinates[0] += 360;
+        } else if (startLng <= -90 && endLng >= 90) {
+            nearest.geometry.coordinates[0] -= 360;
+        }
+
         const nearestLine = turf.lineString([point.geometry.coordinates, nearest.geometry.coordinates]);
         
         nearestAirports.features.push(nearest);
